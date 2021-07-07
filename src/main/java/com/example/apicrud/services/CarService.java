@@ -1,8 +1,17 @@
 package com.example.apicrud.services;
 
-import com.example.apicrud.entities.CarEntity;
+import com.example.apicrud.pojo.models.Car;
+import com.example.apicrud.repository.CarRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-public interface CarService {
+@Service
+public class CarService {
 
-    CarEntity add(CarEntity params);
+    @Autowired
+    CarRepository carRepository;
+
+    public Car add(Car params) {
+        return carRepository.save(params);
+    }
 }

@@ -1,11 +1,10 @@
 package com.example.apicrud.controllers;
 
-import com.example.apicrud.entities.CarEntity;
+import com.example.apicrud.pojo.models.Car;
 import com.example.apicrud.repository.CarRepository;
 import com.example.apicrud.response.CommonResponse;
 import com.example.apicrud.response.CommonResponseGenerator;
 import com.example.apicrud.services.CarService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,14 +14,15 @@ import java.util.List;
 
 public class CarController {
 
-    @Autowired
-    CarRepository carRepository;
+    private final CarRepository carRepository;
+    private final CarService carService;
+    private final CommonResponseGenerator commonResponseGenerator;
 
-    @Autowired
-    CarService carService;
-
-    @Autowired
-    CommonResponseGenerator commonResponseGenerator;
+    public CarController(CarRepository carRepository, CarService carService, CommonResponseGenerator commonResponseGenerator) {
+        this.carRepository = carRepository;
+        this.carService = carService;
+        this.commonResponseGenerator = commonResponseGenerator;
+    }
 
     @GetMapping("/check")
     public String checkApi(){
@@ -30,9 +30,9 @@ public class CarController {
     }
 
     @PostMapping("/")
-    public CommonResponse add(@RequestBody CarEntity params){
+    public CommonResponse add(@RequestBody Car params){
         try {
-            CarEntity car = carService.add(params);
+            Car car = carService.add(params);
             return commonResponseGenerator.successResponse(car, "Success");
         }catch (Exception e){
             return commonResponseGenerator.failedResponse(e.getMessage());
@@ -40,12 +40,12 @@ public class CarController {
     }
 
     @GetMapping("/")
-    public List<CarEntity> getAll(){
+    public List<Car> getAll(){
         return carRepository.findAll();
     }
 
     @GetMapping("/id")
-    public CommonResponse<CarEntity> getById(@RequestParam int id){
+    public CommonResponse<Car> getById(@RequestParam int id){
         try {
              return commonResponseGenerator.successResponse(carRepository.findById(id).get(),"succes");
         }catch (Exception e){
@@ -54,13 +54,13 @@ public class CarController {
     }
 
     @PutMapping("/update")
-    public CarEntity update(@RequestBody CarEntity params){
+    public Car update(@RequestBody Car params){
         return carRepository.save(params);
     }
 
     @DeleteMapping("/delete")
-    public CarEntity delete(@RequestParam int id){
-        CarEntity car = carRepository.findById(id).get();
+    public Car delete(@RequestParam int id){
+        Car car = carRepository.findById(id).get();
         carRepository.deleteById(id);
         return car;
     }
