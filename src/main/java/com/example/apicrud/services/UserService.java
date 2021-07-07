@@ -11,11 +11,18 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 public class UserService {
-    @Autowired
-    private UserRepository userRepository;
 
-    @Autowired
+    private UserRepository userRepository;
     private PasswordEncoder passwordEncoder;
+
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    public Boolean doesEmailExists(String email) {
+        return userRepository.existsByEmail(email);
+    }
 
     public UserDTO register(UserRequest request) {
         request.setPassword(passwordEncoder.encode(request.getPassword()));

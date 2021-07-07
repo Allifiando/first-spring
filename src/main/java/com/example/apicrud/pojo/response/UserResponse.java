@@ -7,6 +7,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class UserResponse {
+    @JsonProperty("status_code")
+    private Integer statusCode;
 
     @JsonProperty("message")
     private String message;

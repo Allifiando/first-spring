@@ -27,13 +27,19 @@ public class UserController {
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/api/user/register")
-    public ResponseEntity<?> update(@RequestBody UserRequest request){
+    public ResponseEntity<UserDTO> update(@RequestBody UserRequest request) throws Exception{
+        String email = request.getEmail();
+        UserResponse response = new UserResponse();
+        Boolean doesEmailExists = userService.doesEmailExists(email);
+        if (doesEmailExists) {
+            throw new IllegalArgumentException("User email is taken");
+        }
 
         UserDTO dto = userService.register(request);
-        UserResponse response = new UserResponse();
-        response.setMessage("success");
+//        response.setStatusCode(400);
+//        response.setMessage("success");
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return new ResponseEntity<>(dto,HttpStatus.OK);
     }
 
     @PostMapping("/user/login")
