@@ -1,63 +1,126 @@
 package com.example.apicrud.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Service;
+import com.example.apicrud.Utils;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.stereotype.Component;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
+import java.security.Key;
+import java.sql.Date;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
-@Service
-public class TokenProvider {
-    private String secret = "TUlJQ1hBSUJBQUtCZ1FDeldERmlGcVE3ZGc1NzdNdWVmbXQxb0hicThXOCt0VFYvcFpQVDk1OXczRkl2ZkpZWAovejI3K3ltbWZtOEprV3lNelZwRCtiNnpJdmhjYXdDbUZvekVvOWgvc3o4ZHhVdC95L1VhU2w1TUhIblZjVTJ0CkpUbnN6OFNBY1BvT2RuYy9WWDBpeU84VUlDbkozWUNJOWE2MGlhdjJWMmVRQ2F1bE9ENHFWNHZFVHdJREFRQUIKQW9HQkFJZFY0eFlnL2RmOUU1c0NxdmswYndUNWpTTm9BOG12VnVxM1dTR1llQkhqd0lVakgrU0Y4T0VjL0dZdQpmTDRjcG14dVBsS1RjUXVmTlFvUW1SRzhiSVpuckhiWkcvQXpsY1ZBZkN5WlVrWThqY0Rrd3JKdEtueXRCcFFqCnNHLzc0VS9SdDYyOEtRcjBYM2tCakhvS05nblRyVTZCWmRaN2VOTFFocll3UGI3SkFrRUEyYUgzRGdjRWowMHIKMjNrbXEycENQdUV6c0tLYkI1ckt2QmdkQVdxR1c5V3BCS3NzUTZJZ3B4ekNvR3VXMFFpN0NXN1BlUmpvYkJ6TgpxRlBKYnQramJRSkJBTkwyUEJhYXg3czJ5d3d0QkJSUnFBd3h4aVUzbXNEWEFNamN4dHBQb1dKUUVnYmgrMDMzClBVQVJEYmJWZnRNTlRtRlZ2bnR2ajlmK04ycllMZ0prOVNzQ1FDdFRjaktwdFArdVZsZllFNW0yaXIrbjU3bDMKZGJPYTNsZDUyWFJwdDV2YXVrNUNvWXBKWVlURFZmL0h5M3VMNkdobFZncCtxZTYwQVVGTWhPSjh4VFVDUUJGTwpJWis1RXFsSTFWOHFVaXRZaDNCNHBNaG94MGtLV2dZZ0ZpL1NXR3E0SnNKcHh6T2VGR2dzL2ZNQmtHVy9zYTVLCldsWEYwUWJtMDZUd0Z0WWJjZ0VDUUFUUGMxZFNlQTRRMytCZllSeVFjYmR5ZndFeSsrTnNpb1dZVEliaTJQMDAKZWxFUXoyc3BDbzNvS2ZRaUwzRGRrVnpVSk5oeVNyVG1VdlFiNDdzc1ZSYz0=";
+@Slf4j
+@Component
+public class TokenProvider implements InitializingBean {
 
-    public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
+    private static final String AUTHORITIES_KEY = "auth";
+    private final String base64Secret;
+    private final long tokenValidityInSeconds;
+    private final long tokenValidityInSecondsForRememberMe;
+
+    private Key key;
+
+    public TokenProvider(
+            @Value("${jwt.base64-secret}") String base64Secret,
+            @Value("${jwt.token-validity-in-seconds}") long tokenValidityInSeconds,
+            @Value("${jwt.token-validity-in-seconds-for-remember-me}") long tokenValidityInSecondsForRememberMe) {
+        this.base64Secret = base64Secret;
+        this.tokenValidityInSeconds = tokenValidityInSeconds;
+        this.tokenValidityInSecondsForRememberMe = tokenValidityInSecondsForRememberMe;
     }
 
-    public Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
+    @Override
+    public void afterPropertiesSet() {
+        byte[] keyBytes = Decoders.BASE64.decode(base64Secret);
+        this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
-    }
-    private Claims extractAllClaims(String token) {
-        return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
-    }
+    public String createToken(Authentication authentication) {
+        String authorities = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(","));
 
-    private Boolean isTokenExpired(String token) {
-        // here it will check if the token has created before time limit. i.e 10 hours then will will return true else false
-        return extractExpiration(token).before(new Date());
-    }
+        LocalDateTime validity = Utils.getCurrentDateTime();
+        ZonedDateTime zoned = validity.atZone(Utils.ZONE_JAKARTA);
+        long epochSeconds = zoned.toInstant().getEpochSecond();
+        epochSeconds += tokenValidityInSeconds;
 
-    // this method is for generating token. as argument is username. so as user first time send request with usernamr and password
-    // so here we will fetch the username , so based on that username we are going to create one token
-    public String generateToken(String username) {
-        Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, username);
+        return Jwts.builder()
+                .setSubject(authentication.getName())
+                .claim(AUTHORITIES_KEY, authorities)
+                .signWith(key, SignatureAlgorithm.HS512)
+                .setExpiration(java.sql.Date.from(Instant.ofEpochSecond(epochSeconds)))
+                .compact();
     }
 
-    // in this method createToken subject argument is username
-    // here we are setting the time for 10 hours to expire the token.
-    // and you can see we are using HS256 algorithmn
-    private String createToken(Map<String, Object> claims, String subject) {
+    public String createToken(Set<User> authentication, String email) {
+        String authorities = authentication.stream()
+                .map(User::getUsername)
+                .collect(Collectors.joining(","));
 
-        return Jwts.builder().setClaims(claims).setSubject(subject).setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10))
-                .signWith(SignatureAlgorithm.HS256, secret).compact();
+        LocalDateTime validity = Utils.getCurrentDateTime();
+        ZonedDateTime zoned = validity.atZone(Utils.ZONE_JAKARTA);
+        long epochSeconds = zoned.toInstant().getEpochSecond();
+        epochSeconds += tokenValidityInSeconds;
+
+        return Jwts.builder()
+                .setSubject(email)
+                .claim(AUTHORITIES_KEY, authorities)
+                .signWith(key, SignatureAlgorithm.HS512)
+                .setExpiration(Date.from(Instant.ofEpochSecond(epochSeconds)))
+                .compact();
     }
 
-    // here we are validation the token
-    public Boolean validateToken(String token, UserDetails userDetails) {
-        // basically token will be generated in encrpted string and from that string . we extract our usename and password using extractUsername method
-        final String username = extractUsername(token);
-        // here we are validation the username and then check the token is expired or not
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    public Authentication getAuthentication(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        Collection<? extends GrantedAuthority> authorities =
+                Arrays.stream(claims.get(AUTHORITIES_KEY).toString().split(","))
+                        .map(SimpleGrantedAuthority::new)
+                        .collect(Collectors.toList());
+
+        User principal = new User(claims.getSubject(), "", authorities);
+
+        return new UsernamePasswordAuthenticationToken(principal, token, authorities);
+    }
+
+    public boolean validateToken(String authToken) {
+        try {
+            Jwt<?, Claims> jwt = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(authToken);
+            // log.info(jwt.toString());
+            Claims claims = jwt.getBody();
+            // log.info(claims.getSubject());
+            return true;
+        } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
+            log.info("Invalid JWT signature.");
+            log.trace("Invalid JWT signature trace: {0}", e);
+        } catch (ExpiredJwtException e) {
+            log.info("Expired JWT token.");
+            log.trace("Expired JWT token trace: {0}", e);
+        } catch (UnsupportedJwtException e) {
+            log.info("Unsupported JWT token.");
+            log.trace("Unsupported JWT token trace: {0}", e);
+        } catch (IllegalArgumentException e) {
+            log.info("JWT token compact of handler are invalid.");
+            log.trace("JWT token compact of handler are invalid trace: {0}", e);
+        }
+        return false;
     }
 }

@@ -24,4 +24,9 @@ public class Utils {
         ZonedDateTime zoned = ZonedDateTime.ofInstant(Instant.now(), ZONE_UTC);
         return zoned.toLocalDateTime();
     }
+
+    public static LocalDateTime getCurrentDateTime() {
+        ZonedDateTime zoned = ZonedDateTime.ofInstant(Instant.now(), ZONE_JAKARTA);
+        return zoned.toLocalDateTime();
+    }
 }
