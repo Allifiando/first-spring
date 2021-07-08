@@ -59,6 +59,7 @@ public class TokenProvider implements InitializingBean {
         LocalDateTime validity = Utils.getCurrentDateTime();
         ZonedDateTime zoned = validity.atZone(Utils.ZONE_JAKARTA);
         long epochSeconds = zoned.toInstant().getEpochSecond();
+        epochSeconds += tokenValidityInSeconds;
 
         return Jwts.builder()
                 .setSubject(authentication.getName())
@@ -106,9 +107,7 @@ public class TokenProvider implements InitializingBean {
     public boolean validateToken(String authToken) {
         try {
             Jwt<?, Claims> jwt = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(authToken);
-            // log.info(jwt.toString());
             Claims claims = jwt.getBody();
-            // log.info(claims.getSubject());
             return true;
         } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
             log.info("Invalid JWT signature.");
