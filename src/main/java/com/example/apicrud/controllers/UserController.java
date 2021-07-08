@@ -50,7 +50,7 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @RequestMapping(method = RequestMethod.POST, value = "/api/user/ando")
+    @RequestMapping(method = RequestMethod.POST, value = "/api/user/login")
     public ResponseEntity<JWTToken> login(@RequestBody User userReq) throws Exception{
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(userReq.getEmail(), userReq.getPassword());

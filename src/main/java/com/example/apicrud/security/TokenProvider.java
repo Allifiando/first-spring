@@ -1,6 +1,7 @@
 package com.example.apicrud.security;
 
 import com.example.apicrud.Utils;
+import com.example.apicrud.pojo.models.Role;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -19,7 +20,9 @@ import java.sql.Date;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -29,6 +32,7 @@ public class TokenProvider implements InitializingBean {
     private static final String AUTHORITIES_KEY = "auth";
     private final String base64Secret;
     private final long tokenValidityInSeconds;
+    private final long tokenValidityInSecondsForRememberMe;
 
     private Key key;
 
@@ -38,6 +42,7 @@ public class TokenProvider implements InitializingBean {
             @Value("${jwt.token-validity-in-seconds-for-remember-me}") long tokenValidityInSecondsForRememberMe) {
         this.base64Secret = base64Secret;
         this.tokenValidityInSeconds = tokenValidityInSeconds;
+        this.tokenValidityInSecondsForRememberMe = tokenValidityInSecondsForRememberMe;
     }
 
     @Override
@@ -54,19 +59,18 @@ public class TokenProvider implements InitializingBean {
         LocalDateTime validity = Utils.getCurrentDateTime();
         ZonedDateTime zoned = validity.atZone(Utils.ZONE_JAKARTA);
         long epochSeconds = zoned.toInstant().getEpochSecond();
-        epochSeconds += tokenValidityInSeconds;
 
         return Jwts.builder()
                 .setSubject(authentication.getName())
                 .claim(AUTHORITIES_KEY, authorities)
                 .signWith(key, SignatureAlgorithm.HS512)
-                .setExpiration(java.sql.Date.from(Instant.ofEpochSecond(epochSeconds)))
+                .setExpiration(Date.from(Instant.ofEpochSecond(epochSeconds)))
                 .compact();
     }
 
-    public String createToken(Set<User> authentication, String email) {
+    public String createToken(Set<Role> authentication, String email) {
         String authorities = authentication.stream()
-                .map(User::getUsername)
+                .map(Role::getName)
                 .collect(Collectors.joining(","));
 
         LocalDateTime validity = Utils.getCurrentDateTime();
@@ -121,4 +125,5 @@ public class TokenProvider implements InitializingBean {
         }
         return false;
     }
+
 }

@@ -42,6 +42,7 @@ public class UserModelDetailsService implements UserDetailsService {
         List<GrantedAuthority> grantedAuthorities = user.getRoleSet().stream()
                 .map(authority -> new SimpleGrantedAuthority(authority.getName()))
                 .collect(Collectors.toList());
+
         return new org.springframework.security.core.userdetails.User(user.getEmail(),
                 user.getPassword(),
                 grantedAuthorities);
