@@ -1,5 +1,6 @@
 package com.example.apicrud.pojo.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -25,4 +26,9 @@ public class Car {
 
     @Column(name = "color")
     private String color;
+
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 }

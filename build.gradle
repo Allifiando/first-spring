@@ -31,6 +31,13 @@ dependencies {
 	// lombok
 	implementation 'org.projectlombok:lombok:1.18.20'
 	annotationProcessor 'org.projectlombok:lombok:1.18.20'
+
+	// email validation / commons io
+	implementation 'commons-validator:commons-validator:1.7'
+	implementation 'commons-io:commons-io:2.8.0'
+
+	implementation 'org.apache.lucene:lucene-spatial:8.4.1'
+
 }
 
 test {

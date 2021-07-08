@@ -44,7 +44,7 @@ public class UserController {
         }
 
         userService.register(request);
-        response.setStatusCode(400);
+        response.setStatusCode(200);
         response.setMessage("success");
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
@@ -54,12 +54,10 @@ public class UserController {
     public ResponseEntity<JWTToken> login(@RequestBody User userReq) throws Exception{
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(userReq.getEmail(), userReq.getPassword());
-
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
-        log.info("data",authentication);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = tokenProvider.createToken(authentication);
-    log.info("jwt controller",jwt);
+
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add(JwtFilter.AUTHORIZATION_HEADER, "Bearer " + jwt);
         return new ResponseEntity<>(JWTToken.builder().idToken(jwt).build(), httpHeaders,HttpStatus.OK);
