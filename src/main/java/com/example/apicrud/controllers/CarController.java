@@ -26,7 +26,7 @@ public class CarController {
 
     @GetMapping("/check")
     public String checkApi(){
-        return "Hello World";
+        return "Hello Worlds";
     }
 
     @PostMapping("/")
